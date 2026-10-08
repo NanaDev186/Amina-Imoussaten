@@ -1,0 +1,158 @@
+<title>Mémo Kafka & microservices</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: single mobile-first column, sections as stacked blocks, glossary as term/definition list */
+:root {
+  --bg: #f5f7f6;
+  --surface: #ffffff;
+  --fg: #16201e;
+  --muted: #56645f;
+  --line: #d9e1de;
+  --accent: #0d6b62;
+  --accent-soft: #e2f0ed;
+  --warn: #9a4b0b;
+  --warn-soft: #fbeedd;
+  --font-display: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0f1514; --surface: #172120; --fg: #e4ece9; --muted: #9aaba5; --line: #2a3735;
+    --accent: #5cc8b8; --accent-soft: #19302d; --warn: #f0b072; --warn-soft: #33261a;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0f1514; --surface: #172120; --fg: #e4ece9; --muted: #9aaba5; --line: #2a3735;
+  --accent: #5cc8b8; --accent-soft: #19302d; --warn: #f0b072; --warn-soft: #33261a;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font-body); font-size: 15px; line-height: 1.55; }
+.wrap { max-width: 680px; margin: 0 auto; padding-inline: 16px; padding-block: 24px 48px; display: grid; gap: 28px; }
+header { display: grid; gap: 6px; }
+.eyebrow { font-family: var(--font-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font-family: var(--font-display); font-weight: 800; font-size: 28px; line-height: 1.15; margin: 0; text-wrap: balance; }
+.lede { color: var(--muted); margin: 0; }
+section { display: grid; gap: 12px; }
+h2 { font-family: var(--font-display); font-weight: 800; font-size: 18px; margin: 0; padding-bottom: 6px; border-bottom: 1px solid var(--line); text-wrap: balance; }
+p { margin: 0; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+code { background: var(--accent-soft); color: var(--accent); padding: 1px 5px; border-radius: 4px; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 460px) { .pair { grid-template-columns: 1fr; } }
+.mode { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 4px; min-width: 0; }
+.mode b { font-family: var(--font-display); }
+.mode small { color: var(--muted); font-size: 13px; }
+dl { margin: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.term { display: grid; grid-template-columns: 118px 1fr; gap: 12px; padding: 10px 14px; border-top: 1px solid var(--line); }
+.term:first-child { border-top: 0; }
+dt { font-family: var(--font-mono); font-weight: 600; font-size: 13px; color: var(--accent); }
+dd { margin: 0; min-width: 0; }
+@media (max-width: 400px) { .term { grid-template-columns: 1fr; gap: 2px; } }
+.flow { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 14px; display: grid; gap: 8px; justify-items: center; text-align: center; }
+.node { font-family: var(--font-mono); font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--line); background: var(--bg); }
+.node.topic { background: var(--accent); color: var(--bg); border-color: var(--accent); font-weight: 600; }
+.arrow { color: var(--muted); font-size: 12px; font-family: var(--font-mono); }
+.consumers { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.flow .note { color: var(--muted); font-size: 13px; }
+ul.clean { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+ul.clean li { padding-left: 18px; position: relative; }
+ul.clean li::before { content: ""; position: absolute; left: 2px; top: .7em; width: 7px; height: 7px; border-radius: 2px; background: var(--accent); }
+.pitfalls li::before { background: var(--warn); }
+.callout { background: var(--warn-soft); border-radius: 10px; padding: 12px 14px; }
+.callout b { color: var(--warn); }
+ol.steps { margin: 0; padding-left: 22px; display: grid; gap: 6px; }
+ol.steps li::marker { font-family: var(--font-mono); color: var(--accent); font-weight: 600; }
+.quotes { display: grid; gap: 8px; }
+.q { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; font-style: italic; }
+footer { color: var(--muted); font-size: 12px; font-family: var(--font-mono); }
+</style>
+
+<main class="wrap">
+  <header>
+    <span class="eyebrow">Mission Crédit Agricole · mémo</span>
+    <h1>Kafka &amp; microservices en 5 minutes</h1>
+    <p class="lede">Les services ne s'appellent pas forcément entre eux. Souvent, ils publient des événements dans Kafka et d'autres services y réagissent.</p>
+  </header>
+
+  <section>
+    <h2>Microservices</h2>
+    <p>Le SI est découpé en petits services, un par responsabilité métier : comptes, virements, notifications, fraude… Chacun a sa base de données, son déploiement et son équipe.</p>
+  </section>
+
+  <section>
+    <h2>Deux façons de communiquer</h2>
+    <div class="pair">
+      <div class="mode"><b>Synchrone · REST / gRPC</b><span>A appelle B et attend la réponse.</span><small>Ex. : le front demande un solde.</small></div>
+      <div class="mode"><b>Asynchrone · Kafka</b><span>A publie un événement et continue. Les services intéressés le traitent à leur rythme.</span><small>Ex. : « un virement a été émis ».</small></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>Le vocabulaire Kafka</h2>
+    <dl>
+      <div class="term"><dt>Event</dt><dd>Un fait qui s'est produit. <code>{"type":"VirementEmis","montant":500}</code></dd></div>
+      <div class="term"><dt>Topic</dt><dd>Une catégorie de messages, comme une boîte aux lettres thématique. <code>virements.emis</code></dd></div>
+      <div class="term"><dt>Producer</dt><dd>Le service qui écrit dans un topic.</dd></div>
+      <div class="term"><dt>Consumer</dt><dd>Le service qui lit un topic.</dd></div>
+      <div class="term"><dt>Consumer group</dt><dd>Les instances d'un même consumer se partagent le travail. Un message est traité une seule fois par groupe.</dd></div>
+      <div class="term"><dt>Partition</dt><dd>Un morceau de topic, qui permet de paralléliser. L'ordre est garanti dans une partition. La clé du message (ex. <code>compteId</code>) choisit la partition.</dd></div>
+      <div class="term"><dt>Offset</dt><dd>La position de lecture d'un consumer, comme un marque-page. Il permet de reprendre après un crash.</dd></div>
+      <div class="term"><dt>Broker</dt><dd>Un serveur Kafka. Plusieurs brokers forment un cluster.</dd></div>
+      <div class="term"><dt>Rétention</dt><dd>Les messages restent stockés un certain temps, ce qui permet de les rejouer.</dd></div>
+      <div class="term"><dt>Démon</dt><dd>Un processus qui tourne en continu en arrière-plan. Ici : un consumer qui écoute un topic en boucle.</dd></div>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Exemple : un virement</h2>
+    <div class="flow" role="img" aria-label="Le service virements publie dans le topic virements.emis, lu par trois démons : fraude, notifications et comptabilité">
+      <span class="node">Front → API service-virements</span>
+      <span class="arrow">↓ publie (producer)</span>
+      <span class="node topic">topic : virements.emis</span>
+      <span class="arrow">↓ lisent (consumers)</span>
+      <div class="consumers">
+        <span class="node">démon-fraude</span>
+        <span class="node">démon-notif</span>
+        <span class="node">démon-compta</span>
+      </div>
+      <p class="note">Le service virements ne connaît aucun des démons. On peut en ajouter un sans toucher à son code : c'est le faible couplage.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2>Les pièges à connaître</h2>
+    <ul class="clean pitfalls">
+      <li><b>Idempotence :</b> un message peut arriver deux fois. Le traitement doit supporter le doublon.</li>
+      <li><b>DLQ :</b> un topic où partent les messages en échec, pour analyse ou rejeu.</li>
+      <li><b>Schémas :</b> souvent en Avro, avec un Schema Registry qui fixe le format entre producer et consumer.</li>
+      <li><b>Consistance éventuelle :</b> les données ne sont pas à jour partout instantanément, elles le deviennent.</li>
+      <li><b>Lag :</b> le retard d'un consumer sur un topic. C'est l'indicateur clé du monitoring.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Mon plan pour monter en compétence</h2>
+    <ol class="steps">
+      <li>Récupérer (ou dessiner) la carte des services et des topics : qui produit, qui consomme.</li>
+      <li>Suivre un flux métier de bout en bout dans le code.</li>
+      <li>Repérer les outils : interface Kafka (AKHQ, Kafdrop, Conduktor), Schema Registry, monitoring du lag.</li>
+      <li>Lire un consumer : <code>group.id</code>, gestion des erreurs, idempotence.</li>
+    </ol>
+  </section>
+
+  <section>
+    <h2>Questions à poser à l'équipe</h2>
+    <div class="quotes">
+      <p class="q">Comment gère-t-on les doublons et les messages en erreur ?</p>
+      <p class="q">Quelle est la convention de nommage des topics ?</p>
+      <p class="q">Comment je lis un topic en environnement de dev ?</p>
+    </div>
+  </section>
+
+  <div class="callout"><b>Objectif :</b> savoir expliquer à l'oral, en 2 minutes, un flux complet de ta mission (producer → topic → consumers).</div>
+
+  <footer>Mémo perso · à compléter avec les vrais noms de topics de l'équipe</footer>
+</main>
